@@ -1,7 +1,7 @@
 # NOTE: update this with your service name
 service: project-api
 
-# Create an optimized package for our functions 
+# Create an optimized package for our functions
 package:
   individually: true
 
@@ -9,6 +9,8 @@ plugins:
   - serverless-bundle # Package our functions with Webpack
   - serverless-offline
   - serverless-dotenv-plugin # Load .env as environment variables
+
+
 
 provider:
   name: aws
@@ -22,11 +24,64 @@ provider:
   #
   #environment:
   #  sampleEnvVar: ${env:SAMPLE_ENV_VAR}
+  environment:
+    documentTableName: documents
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+          - dynamodb:DescribeTable
+          - dynamodb:Query
+          - dynamodb:Scan
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+          - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:us-east-1:*:*"
 
 functions:
-  hello:
-    handler: handler.hello
+  deleteDocument:
+    handler: deleteDocument.main
     events:
       - http:
-          path: hello
+          path: documents/{id}
+          method: delete
+          cors: true
+          authorizer: aws_iam
+  updateDocument:
+    handler: updateDocument.main
+    events:
+      - http:
+          path: documents/{id}
+          method: put
+          cors: true
+          authorizer: aws_iam
+  getDocument:
+    handler: getDocument.main
+    events:
+      - http:
+          path: documents/{id}
           method: get
+          cors: true
+          authorizer: aws_iam
+  createDocument:
+    handler: createDocument.main
+    events:
+      - http:
+          path: documents
+          method: post
+          cors: true
+          authorizer: aws_iam
+  listDocuments:
+    handler: listDocuments.main
+    events:
+      - http:
+          path: documents
+          method: get
+          cors: true
+          authorizer: aws_iam
+
+# Create our resources with separate CloudFormation templates
+resources:
+  # API Gateway Errors
+  - ${file(resources/api-gateway-errors.yml)}
